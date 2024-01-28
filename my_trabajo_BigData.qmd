@@ -1,0 +1,201 @@
+---
+title: "Breve análisis del sector de los videojuegos"
+description: |
+  Describiendo algunas de las características del mercado de los videojuegos en Europa y en el mundo.
+author:
+  - name: Luis Antonio Díaz Reyna
+    affiliation: Universitat de València
+    affiliation-url: https://www.uv.es
+date: 26/01/2024                           #--
+categories: [trabajo BigData, videojuegos]   #--
+image: "./imagenes/imagen_01.png"
+title-block-banner: true #- {true, false, "green","#AA0000"}
+title-block-banner-color: "#9ACD32"    #-"#FFFFFF" 
+toc-depth: 3
+smooth-scroll: true
+format: 
+  html:
+    backgroundcolor: "#F1F3F4"
+    embed-resources: true
+    link-external-newwindow: true
+    css: ./assets/my_css_file.css   #- CUIDADO!!!!
+code-tools: true
+code-link: true
+warning: false
+message: false
+---
+# Introducción.
+La industria de los videojuegos ha experimentado un crecimiento muy significativo en las últimas de´cadas, convirtiéndose en uno de los sectores clave del entretenimiento a nivel mundial. Hay incluso quien lo coloca como el "octavo arte" y no es para menos, hay algunas obras que son auténticas maravillas del diseño, y que ofrecen experiencias únicas.
+
+Por eso, este trabajo va a tratar brevemente de explorar y analizar datos relevantes de la industria, que nos permita ver la importancia que tiene esta en la cultura pop actualmente, así como la especial relevancia de algunos títulos particulares.
+
+
+
+
+
+
+
+
+
+Cargamos las librerías pertinentes
+```{r}
+#| message: false
+library(rio)
+library(tidyverse)
+library(here)
+library(DT)
+library(gt)
+library(ggplot2)
+library(tidyr)
+library(stargazer)
+#install.packages("viridis")
+library(viridis)
+```
+
+Comenzamos cargando algunos datos que usaremos más adelante, los tenemos en la carpeta "datos"
+
+```{r}
+ruta1 <- here::here("datos","game_ratings_reviews.csv")
+ruta2 <- here::here("datos", "global_vg_sales.csv")
+ruta3 <- here::here("datos", "popular_vg_80_23.csv")
+ratings <- rio::import(ruta1)
+sales <- rio::import(ruta2)
+sales <- sales %>% rename(year = Year, platform = Platform, name = Name, genre = Genre)
+popularity <- rio::import(ruta3)
+
+```
+Lo primero que hemos hecho es descargar los datos De la web de datos estadísticos https://www.kaggle.com/. Vamos a trabajar en primer lugar, con los datos de ventas de varios miles de juegos en Europa, Japón, USA y el mundo entero. Aunque solo cubre datos hasta el 2020 y no incluye a juegos de la ps5 y nintendo switch, por lo que títulos como los dos últimos Zelda (dos de mis juegos favoritos) quedan fuera, pero nos podemos hacer una idea de las preferencias de los consumidores en el sector.
+
+# Juegos más vendidos en Europa
+
+Veamos en principio cuales son los diez juegos más vendidos en Europa de forma acumulada en millones de copias. Como cada videojuego puede salir en más de una plataforma, agruparemos y sumaremos las ventas de cada uno en cada plataforma en la que ha salido.
+```{r}
+aa <- sales %>% select(name, platform, EU_Sales, genre) %>% 
+  group_by(name) %>%
+  summarize(total_ventas = sum(EU_Sales)) %>% 
+  arrange(desc(total_ventas)) %>% 
+  top_n(10)
+
+aa
+  
+```
+Ahora vamos a presentar los datos de forma que entren con mayor facilidad por los ojos, y que se pueda apreciar bien la magnitud de ventas entre un juego y otro.
+
+```{r}
+logos <- c("https://vgboxart.com/resources/logo/2808_wii-sports-prev.png",
+           "https://th.bing.com/th/id/R.8fa838025cce89858dcd847cd889b959?rik=hHE8ZF3Q%2bl1X1w&riu=http%3a%2f%2fwww.gtafans.ru%2fsites%2fdefault%2ffiles%2fimagepicker%2f1%2fthumbs%2fgtafans-ru-gta-5-manual-img-90.jpg&ehk=Cdg4hDNHozJXEuqJXqerUZ52Apbw0qRuv2uTYN5qm98%3d&risl=&pid=ImgRaw&r=0",
+           "https://vignette.wikia.nocookie.net/logopedia/images/e/e2/Mariokartwii.png/revision/latest?cb=20130407043300", 
+           "https://th.bing.com/th/id/R.a4ee28d646bf287b06f7eb195e19e077?rik=mCIuC46j%2by2tQA&riu=http%3a%2f%2f3.bp.blogspot.com%2f-f9bOnEoh2gg%2fVDVNAkVkI2I%2fAAAAAAAAB44%2fAHfoNZZjoo4%2fs1600%2fFifa15_logo.png&ehk=5cFO%2bLaN5IoPkyw6i271DT9vYWxGN1FgJqKKPLlKpXI%3d&risl=&pid=ImgRaw&r=0",
+           "https://icons.iconarchive.com/icons/3xhumed/call-of-duty-modern-warfare-3/512/CoD-Modern-Warfare-3-1-icon.png" ,
+           "https://th.bing.com/th/id/R.55d24ff80e61e21eeeda45c59170cc46?rik=eR5UpjPM83Xwzg&pid=ImgRaw&r=0",
+           "https://th.bing.com/th/id/R.2328b8ee0975f7cbfc666250b2d149f2?rik=nAwYa2MFoG9Umw&riu=http%3a%2f%2fwww.fifplay.com%2fimages%2fpublic%2ffifa14-logo.jpg&ehk=EdXZfzKPk2A2f1T0Lc04JqbbV0LwEO6%2bshfNFb%2b%2feQA%3d&risl=&pid=ImgRaw&r=0",
+           "https://th.bing.com/th/id/OIP.gTB_yOxnWLGm2az-_T6BYAHaEK?rs=1&pid=ImgDetMain",
+           "https://picfiles.alphacoders.com/635/thumb-1920-6356.jpg",
+           "https://th.bing.com/th/id/R.3b548db8a3d07d2cedd795fe9c1652ce?rik=Eko62hmuinWG9A&riu=http%3a%2f%2fwww.guiasnintendo.com%2f0a_NINTENDO_3DS%2fnintendogs_cats%2fnintendogs_cats_sp%2fimg%2finicio.jpg&ehk=7e9ymei5w%2bMincApqgKGYLrVwPF%2flWQLvKm8tsqJLaQ%3d&risl=&pid=ImgRaw&r=0")
+
+name <- c("Wii Sports", "Grand Theft Auto V", "Mario Kart Wii","FIFA 15", "Call of Duty: Modern Warfare 3", "FIFA 16", "FIFA 14", "Call of Duty: Black Ops II
+	", "Wii Sports Resort", "Nintendogs")
+
+aa_logos <- data.frame(name, logos)
+
+aa_final <- left_join(aa, aa_logos, by = ("name"))
+
+colores <- c("#3498db", "#2ecc71", "#e74c3c", "#f39c12", "#9b59b6", "#e67e22", "#1abc9c","#33FF99", "#FFCCFF", "#FFCF23")
+
+gt_aa_final <- aa_final %>%
+  gt() %>% 
+ gtExtras::gt_plt_dot(column = "total_ventas", category_column = `name`,  
+                       max_value = NULL, palette = colores) %>%
+  gtExtras::gt_theme_nytimes() %>%
+  cols_width(`name` ~ px(300), 3 ~ px(150)) %>% 
+  tab_header(title = "videojuegos más vendidos de la historia",
+             subtitle = "Datos de Europa")%>%
+  gtExtras::gt_img_rows(columns = logos, img_source = 'web')
+gt_aa_final
+```
+Lideran las ventas dos juegos contrapuestos. Uno es muy familiar y para todos los públicos, el Wii Sports, otro es online y no apto para todas las edades, el GTA V. Podríamos decir que el público está dividido en ese aspecto, pero en realidad jugar uno, no exhime de jugar otro, así que no podemos sacar ese tipo de conclusiones.
+
+
+# Géneros más consumidos
+
+Otra cuestión que considero que puede ser interesante conocer es qué género de videojuego es el preferido o el más consumido. Haremos algo parecido al anterior apartado.
+
+```{r}
+bb <- sales %>% 
+  select(name, platform, genre, EU_Sales) %>% 
+  group_by(genre) %>% 
+  summarise(ventas_por_genero = sum(EU_Sales)) %>% 
+  arrange(desc(ventas_por_genero))
+bb
+
+
+```
+Ahora, con la información de este nuevo data.frame, confeccionamos un gráfico de barras que ordene los géneros de mayor a menor popularidad.
+
+```{r}
+bbplot <- ggplot(bb, aes(x = reorder(genre, -ventas_por_genero), y = ventas_por_genero)) +
+  geom_bar(stat = "identity", fill = viridis::viridis_pal(option = "C")(12)) +
+  labs(title = "Popularidad de cada género de videojuegos",
+       subtitle = "Medido en millones de copias vendidas en Europa",
+       x = "Género",
+       y = "Ventas (en millones)") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10, face = "bold"))
+bbplot
+```
+
+El género de acción lidera la lista como categoría más vendida en todo el mundo con gran diferencia sobre el segundo. Una de las razones es que es un género muy generalista, que puede incluirse en muchos juegos. El siguiente, que son deportes, se ve "inflado" sobre todo por forofos del fútbol que adoran el FIFA y se compran cada edición, aunque sea el mismo juego, de hecho ya vimos en el anterior apartado que dos juegos de FIFA están entre los 10 más vendidos de la historia en Europa. En tercer lugar, y en mi opinión, más "logrado", son los shooters o juegos de disparo en primera persona. La cantidad de juegos que existen que tienen esta mecánica como poco principal del gameplay es abrumadora, pero vaya, donde nace una necesidad... nace un mercado.
+
+# Compañías más exitosas
+Para resolver está cuestión, hacemos lo mismo que en el anterior apartado, pero agrupando por compañías.
+
+```{r}
+cc <- sales %>% 
+  select(platform, EU_Sales, Publisher) %>% 
+  group_by(Publisher) %>% 
+  summarise(ventas = sum(EU_Sales)) %>% 
+  arrange(desc(ventas)) %>% 
+  top_n(10)
+ranking <- c("1º", "2º", "3º", "4º", "5º", "6º", "7º", "8º", "9º", "10º")
+cc_final <- data.frame(ranking, cc)
+cc_final
+```
+
+Creamos el gráfico con la información que hemos obtenido.
+
+```{r}
+gt_cc <- cc_final %>%
+  gt() %>% 
+  gtExtras::gt_theme_espn() %>%
+  cols_width("ranking" ~ px(100), "Publisher" ~ px(10)) %>% 
+  tab_header(title = "Empresas que más juegos tienen vendidos en su historia",
+             subtitle = "Atendiendo al mercado europeo")
+
+gt_cc
+```
+Lideran el mercado la mítica Nintendo, la joven EA y la atemporal Activision.
+
+#- ¿Qué juegos de The Legend of Zelda están mejor valorados?
+Aprovecho esta última sección para dos cosas. Primero, hablar de una de mis sagas favoritas de los videojuegos (soy un friki, lo se). Segundo, emplear un par de técnicas de data munging que no he tenido la oportunidad de utilizar antes: filtrar por observaciones que *contengan* determinadas palabras, en este caso, el título de la saga, para que me devuelva todos los nombres de los juegos de la misma.
+
+```{r}
+aa <- ratings %>%
+  filter(str_starts(name, "The Legend of Zelda")) %>% 
+  select(name, meta_score) %>% 
+  group_by(name )%>% 
+  summarize(puntuacion = mean(meta_score)) %>%
+  slice(-5, -6) %>% 
+  arrange(desc(puntuacion))
+aa
+```
+Representamos gráficamente
+
+```{r}
+datatable(aa, options = list(pageLength = 10), 
+          colnames = c('Juego', 'Puntuación'),
+          rownames = FALSE)
+```
+Así, podemos ver que los juegos de la saga con una valoración más positiva, muy cercanas a 100, son el clásico Ocarina of Time o the Wind Waker, pero teniendo en un muy honroso segundo puesto al Breath of the Wild, un juego mucho más nuevo.
+
+# Conclusión
+Llamar conclusión a esta parte del trabajo, al igual que hacer en general una conclusión del mismo es cuanto menos curioso, pues todo esto no es realmente más que una excusa para demostrar un par de habilidades que hemos aprendido a lo largo de este año. Espero que quien lea esto entienda que tampoco soy tan forofo de los videojuegos, pero me gustan, me estoy pasando ahora el Zelda totk y he considerado que es un buen tema para hindagar como fan curioso, a la vez que demuestro mis habilidades en el manejo de los datos y su representación.
